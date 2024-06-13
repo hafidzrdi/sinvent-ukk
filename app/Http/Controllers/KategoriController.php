@@ -62,10 +62,32 @@ class KategoriController extends Controller
             'kategori' => 'required|string|max:10|not_in:blank',
         ], $message);
 
-        Kategori::create([
-            'deskripsi' => $request->deskripsi,
-            'kategori' => $request->kategori,
-        ]);
+        // Kategori::create([
+        //     'deskripsi' => $request->deskripsi,
+        //     'kategori' => $request->kategori,
+        // ]);
+
+        try {
+            DB::beginTransaction(); // Start the transaction
+
+            // Insert a new category using Eloquent
+            Kategori::create([
+                'deskripsi' => $request->deskripsi,
+                'kategori'  => $request->kategori,
+                'status'    => 'pending',
+            ]);
+
+            DB::commit(); // Commit the changes
+
+            // Flash success message to the session
+            Session::flash('success', 'Kategori berhasil disimpan!');
+        } catch (\Exception $e) {
+            DB::rollBack(); // Rollback in case of an exception
+            report($e); // Report the exception
+
+            // Flash failure message to the session
+            Session::flash('Gagal', 'Kategori gagal disimpan!');
+        }
 
         return redirect()->route('kategori.index')->with(['success' => 'Data Berhasil Disimpan!']);
     }
