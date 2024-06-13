@@ -30,7 +30,7 @@ class BarangkeluarController extends Controller
             'qty_keluar.min' => 'Nilai Input minimal 1!',
             'barang_id.required' => 'Kolom Barang tidak boleh kosong.',
             'barang_id.exists' => 'Barang yang dipilih tidak valid.',
-            'tgl_keluar.before_or_equal' => 'Tanggal keluar tidak boleh mendahului tanggal paling awal di barang masuk.',
+            'tgl_keluar.before_or_equal' => 'Tanggal keluar tidak boleh mendahului tanggal masuk di barang masuk.',
         ];
 
         // Validasi data input
@@ -61,6 +61,7 @@ class BarangkeluarController extends Controller
                 'barang_id' => $request->barang_id,
             ]);
             $message = 'Data barang keluar berhasil diperbarui';
+
         } else {
             // Ambil data barang berdasarkan ID
             $barang = Barang::find($request->barang_id);
@@ -113,17 +114,22 @@ class BarangkeluarController extends Controller
             'qty_keluar.min' => 'Nilai Input minimal 1!',
         ];
 
-        $request->validate([
-            'tgl_keluar' => 'required|date',
-            'qty_keluar' => 'required|integer|min:1',
-        ], $messages);
-
         $rsetBarangkeluar = Barangkeluar::find($id);
 
-            $rsetBarangkeluar->update([
-                'tgl_keluar'          => $request->tgl_keluar,
-                'qty_keluar'          => $request->qty_keluar,
-            ]);
+        // Dapatkan tanggal masuk paling awal untuk barang yang sama
+        $earliestTglMasuk = Barangmasuk::where('barang_id', $rsetBarangkeluar->barang_id)->min('tgl_masuk');
+
+        // Validasi tambahan untuk memeriksa tanggal keluar tidak lebih awal dari tanggal masuk paling awal
+        if (strtotime($request->tgl_keluar) < strtotime($earliestTglMasuk)) {
+            return redirect()->back()->withErrors([
+                'tgl_keluar' => 'Tanggal keluar tidak boleh mendahului tanggal di barang masuk.'
+            ])->withInput();
+        }
+
+        $rsetBarangkeluar->update([
+            'tgl_keluar' => $request->tgl_keluar,
+            'qty_keluar' => $request->qty_keluar,
+        ]);
 
         return redirect()->route('barangkeluar.index')->with(['success' => 'Data Berhasil Diubah!']);
     }

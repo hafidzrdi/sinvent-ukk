@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 use App\Models\Barangmasuk;
 use App\Models\Barang;
-use App\Models\Barangkeluar; // Add this to check if barangkeluar exists
+use App\Models\Barangkeluar; 
 use Illuminate\Http\Request;
 
 class BarangmasukController extends Controller
@@ -38,24 +38,41 @@ class BarangmasukController extends Controller
             'barang_id' => 'required|exists:barang,id',
         ], $messages);
 
+        // Check apakah ada barang keluar dengan ID dan tanggal lebih awal
+        $earliestTglKeluar = Barangkeluar::where('barang_id', $request->barang_id)
+        ->where('tgl_keluar', '<', $request->tgl_masuk)
+        ->min('tgl_keluar');
+
+        // Jika ada barang keluar dengan tanggal lebih awal, perbolehkan data masuk melebihi tanggal keluar
+        if ($earliestTglKeluar && strtotime($request->tgl_masuk) < strtotime($earliestTglKeluar)) {
+        // Tambah record baru
+        Barangmasuk::create([
+            'tgl_masuk' => $request->tgl_masuk,
+            'qty_masuk' => $request->qty_masuk,
+            'barang_id' => $request->barang_id,
+        ]);
+        $message = 'Data barang masuk berhasil ditambah';
+        } else {
         // Check udah ada tanggal yang sama belum
-        $existingBarangMasuk = Barangmasuk::where('tgl_masuk', $request->tgl_masuk)->first();
+        $existingBarangMasuk = Barangmasuk::where('tgl_masuk', $request->tgl_masuk)
+            ->where('barang_id', $request->barang_id)
+            ->first();
 
         if ($existingBarangMasuk) {
-            // update record yang sudah ada
+            // Update record yang sudah ada
             $existingBarangMasuk->update([
                 'qty_masuk' => $request->qty_masuk,
-                'barang_id' => $request->barang_id,
             ]);
             $message = 'Data barang masuk berhasil diperbarui';
         } else {
-            // tambah record baru
+            // Tambah record baru
             Barangmasuk::create([
                 'tgl_masuk' => $request->tgl_masuk,
                 'qty_masuk' => $request->qty_masuk,
                 'barang_id' => $request->barang_id,
             ]);
             $message = 'Data barang masuk berhasil ditambah';
+        }
         }
 
         return redirect()->route('barangmasuk.index')->with('success', $message);
@@ -90,17 +107,36 @@ class BarangmasukController extends Controller
             'qty_masuk' => 'required|integer|min:1',
         ], $messages);
 
+
         // Ambil data barang masuk yang akan diupdate
         $rsetBarangmasuk = Barangmasuk::find($id);
 
         // Ambil data barang terkait
         $barang = Barang::find($rsetBarangmasuk->barang_id);
 
+        // Hitung tanggal keluar paling awal untuk barang yang sama
+        $earliestTglKeluar = Barangkeluar::where('barang_id', $barang->id)
+            ->where('tgl_keluar', '>=', $rsetBarangmasuk->tgl_masuk) // Tanggal keluar setelah atau sama dengan tanggal masuk saat ini
+            ->min('tgl_keluar');
+
+        // Jika ada tanggal keluar yang lebih awal, maka perbolehkan tanggal masuk melebihi tanggal keluar
+        if ($earliestTglKeluar && strtotime($request->tgl_masuk) < strtotime($earliestTglKeluar)) {
+            // Update data barang masuk
+            $rsetBarangmasuk->update([
+                'tgl_masuk' => $request->tgl_masuk,
+                'qty_masuk' => $request->qty_masuk,
+            ]);
+            $message = 'Data barang masuk berhasil diperbarui';
+        } else {
+            // Tidak boleh melebihi tanggal keluar
+            return redirect()->route('barangmasuk.index')->with(['Gagal' => 'Tanggal masuk tidak boleh melebihi tanggal keluar terdekat!']);
+        }
+
         // Hitung perubahan stok
         $stokLama = $barang->stok - $rsetBarangmasuk->qty_masuk;
         $stokBaru = $stokLama + $request->qty_masuk;
 
-        // Periksa stok barang
+        // Periksa stok barang setelah pembaruan
         if ($stokBaru < 0) {
             return redirect()->route('barangmasuk.index')->with(['Gagal' => 'Stok barang tidak bisa negatif setelah pembaruan!']);
         }
@@ -110,6 +146,27 @@ class BarangmasukController extends Controller
             'tgl_masuk' => $request->tgl_masuk,
             'qty_masuk' => $request->qty_masuk,
         ]);
+
+        // // Ambil data barang masuk yang akan diupdate
+        // $rsetBarangmasuk = Barangmasuk::find($id);
+
+        // // Ambil data barang terkait
+        // $barang = Barang::find($rsetBarangmasuk->barang_id);
+
+        // // Hitung perubahan stok
+        // $stokLama = $barang->stok - $rsetBarangmasuk->qty_masuk;
+        // $stokBaru = $stokLama + $request->qty_masuk;
+
+        // // Periksa stok barang
+        // if ($stokBaru < 0) {
+        //     return redirect()->route('barangmasuk.index')->with(['Gagal' => 'Stok barang tidak bisa negatif setelah pembaruan!']);
+        // }
+
+        // // Update data barang masuk
+        // $rsetBarangmasuk->update([
+        //     'tgl_masuk' => $request->tgl_masuk,
+        //     'qty_masuk' => $request->qty_masuk,
+        // ]);
 
         return redirect()->route('barangmasuk.index')->with(['success' => 'Data Berhasil Diubah!']);
     }

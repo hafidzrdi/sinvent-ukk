@@ -35,4 +35,13 @@ class Kategori extends Model
                          'barang.merk','barang.seri','barang.spesifikasi','barang.stok')
                 ->get();
     }
+
+    public static function store(array $data)
+    {
+        return self::create([
+            'deskripsi' => $data['deskripsi'],
+            'kategori'  => $data['kategori'],
+            'status'    => 'pending',
+        ]);
+    }
 }

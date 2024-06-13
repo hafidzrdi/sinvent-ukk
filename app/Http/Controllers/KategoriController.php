@@ -66,10 +66,17 @@ class KategoriController extends Controller
         try {
             DB::beginTransaction(); // Start the transaction
 
-            // Insert a new category using Eloquent
-            Kategori::create([
+            // Eloquent
+            // Kategori::create([
+            //     'deskripsi' => $request->deskripsi,
+            //     'kategori'  => $request->kategori,
+            //     'status'    => 'pending',
+            // ]);
+            
+            // store function
+            $kategoribaru = Kategori::store([
                 'deskripsi' => $request->deskripsi,
-                'kategori'  => $request->kategori,
+                'kategori' => $request->kategori,
                 'status'    => 'pending',
             ]);
 
@@ -130,6 +137,7 @@ class KategoriController extends Controller
 
     public function update(Request $request, string $id)
     {
+        // pesan error
         $p_error = [
             'deskripsi.unique' => 'Deskripsi telah digunakan.',
             'deskripsi.required' => 'Kolom Deskripsi tidak boleh kosong.',
@@ -148,11 +156,23 @@ class KategoriController extends Controller
             'kategori' => 'required|string|max:10',
         ], $p_error);
 
+        // cari data yang akan diupdate
         $rsetKategori = Kategori::find($id);
-        $rsetKategori->update([
+
+        // query builder
+        DB::table('kategori')
+        ->where('id', $id)
+        ->update([
             'deskripsi' => $request->deskripsi,
             'kategori' => $request->kategori,
+            'updated_at' => now(), // Mengupdate timestamp
         ]);
+
+        // Eloquent ORM        
+        // $rsetKategori->update([
+        //     'deskripsi' => $request->deskripsi,
+        //     'kategori' => $request->kategori,
+        // ]);
 
         return redirect()->route('kategori.index')->with(['success' => 'Data Berhasil Diubah!']);
     }
@@ -166,40 +186,5 @@ class KategoriController extends Controller
             $rsetKategori->delete();
             return redirect()->route('kategori.index')->with(['success' => 'Data Berhasil Dihapus!']);
         }
-    }
-
-    function getAPIKategori()
-    {
-        $rsetKategori = Kategori::all();
-        $data = array("data" => $rsetKategori);
-
-        return response()->json($data);
-    }
-
-    function getAPIKategori1($id)
-    {
-        $rsetKategori = Kategori::find($id);
-        $data = array("data" => $rsetKategori);
-        return response()->json($data);
-    }
-
-    function updateKategori(Request $request, $id)
-    {
-        $rsetKategori = Kategori::find($id);
-        if (null == $rsetKategori) {
-            return response()->json(['status' => "Kategori tidak ditemukan"]);
-        }
-        
-        $request->validate([
-            'deskripsi' => 'required|string|max:255',
-            'kategori' => 'required|string|max:10',
-        ]);
-
-        $rsetKategori->update([
-            'deskripsi' => $request->deskripsi,
-            'kategori' => $request->kategori,
-        ]);
-
-        return response()->json(['status' => "Kategori berhasil diubah"]);
     }
 }
