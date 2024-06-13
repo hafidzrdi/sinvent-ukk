@@ -9,7 +9,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SearchController;
 
 Route::get('/', function () {
-    return view('/welcome');
+    // Route::post('/login', [AuthController::class, 'loginPost'])->name('login');
+    return view('auth/login');
 });
 
 Route::resource('kategori',KategoriController::class)->middleware('auth');
