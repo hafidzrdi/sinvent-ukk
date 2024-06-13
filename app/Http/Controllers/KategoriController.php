@@ -15,10 +15,10 @@ class KategoriController extends Controller
     {  
 
         // query builder
-        $rsetKategori = DB::table('kategori')->select('id','deskripsi', 'kategori',DB::raw('getKetKategori(kategori) as ketKategori'))->get();
+        // $rsetKategori = DB::table('kategori')->select('id','deskripsi', 'kategori',DB::raw('getKetKategori(kategori) as ketKategori'))->get();
 
-        // pakai yg di model
-        // $rsetKategori = Kategori::getKategoriAll()->paginate(10);
+        // pakai store procedure
+        $rsetKategori = Kategori::getKategoriAll()->get();
 
         // Eloquent ORM
         // $rsetKategori = Kategori::select('id', 'deskripsi', 'kategori',
@@ -28,7 +28,7 @@ class KategoriController extends Controller
         //         WHEN kategori = "BHP" THEN "Bahan Habis Pakai"
         //         ELSE "Bahan Tidak Habis Pakai"
         //         END) AS ketKategori'))
-        //     ->paginate(10);
+        //     ->get();
 
         // menampilkan ke view
         return view('v_kategori.index', compact('rsetKategori'));
@@ -62,11 +62,7 @@ class KategoriController extends Controller
             'kategori' => 'required|string|max:10|not_in:blank',
         ], $message);
 
-        // Kategori::create([
-        //     'deskripsi' => $request->deskripsi,
-        //     'kategori' => $request->kategori,
-        // ]);
-
+        // memulai transaksi
         try {
             DB::beginTransaction(); // Start the transaction
 
@@ -95,14 +91,14 @@ class KategoriController extends Controller
     public function show(string $id)
     {
         // query builder
-        // $rsetKategori = DB::table('kategori')->select('id','deskripsi', 'kategori',DB::raw('getKetKategori(kategori) as ketKategori'))
-        // ->where('id', '=', $id)
-        // ->first();
-
-        // pakai yang di model
-        $rsetKategori = Kategori::getKategoriAll()
+        $rsetKategori = DB::table('kategori')->select('id','deskripsi', 'kategori',DB::raw('getKetKategori(kategori) as ketKategori'))
         ->where('id', '=', $id)
         ->first();
+
+        // pakai store procedure
+        // $rsetKategori = Kategori::getKategoriAll()
+        // ->where('id', '=', $id)
+        // ->first();
        
         // Eloquent ORM
         // $rsetKategori = Kategori::select('id', 'deskripsi', 'kategori',
